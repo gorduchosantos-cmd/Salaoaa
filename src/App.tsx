@@ -11,10 +11,24 @@ import {
   Check, 
   ChevronDown,
   Menu,
-  X
+  X,
+  Star
 } from 'lucide-react';
-import { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { cn } from './lib/utils';
+import { 
+  db, 
+  auth, 
+  googleProvider, 
+  signInWithPopup, 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  query, 
+  where, 
+  orderBy, 
+  serverTimestamp 
+} from './firebase';
 
 const MARQUEE_BRANDS = [
   "L'ORÉAL PROFESSIONNEL",
@@ -74,11 +88,67 @@ const TESTIMONIALS = [
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [dynamicTestimonials, setDynamicTestimonials] = useState<any[]>([]);
+  const [feedbackForm, setFeedbackForm] = useState({ text: '', author: '', role: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"]
   });
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'testimonials'),
+      where('approved', '==', true),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDynamicTestimonials(docs);
+    }, (error) => {
+      console.error("Error fetching testimonials:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const initials = feedbackForm.author
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+
+      await addDoc(collection(db, 'testimonials'), {
+        ...feedbackForm,
+        initials,
+        approved: false, // Needs admin approval
+        createdAt: serverTimestamp()
+      });
+      setSubmitSuccess(true);
+      setFeedbackForm({ text: '', author: '', role: '' });
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        setIsFeedbackModalOpen(false);
+      }, 3000);
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert("Erro ao enviar feedback. Por favor, tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const allTestimonials = [...dynamicTestimonials, ...TESTIMONIALS];
 
   const heroScale = useTransform(scrollYProgress, [0, 1], [1.1, 1]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [0.4, 0]);
@@ -403,9 +473,9 @@ export default function App() {
           </motion.h2>
           
           <div className="flex gap-6 overflow-x-auto no-scrollbar pb-10 snap-x">
-            {TESTIMONIALS.map((t, idx) => (
+            {allTestimonials.map((t, idx) => (
               <motion.div 
-                key={idx}
+                key={t.id || idx}
                 initial={{ x: 50, opacity: 0 }}
                 whileInView={{ x: 0, opacity: 1 }}
                 viewport={{ once: true }}
@@ -432,18 +502,89 @@ export default function App() {
             viewport={{ once: true }}
             className="mt-16 text-center"
           >
-            <a 
-              href="https://wa.me/message/INXNY2BHGTC2E1" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 bg-gold/10 text-gold border border-gold/20 px-8 py-4 rounded-full font-bold hover:bg-gold hover:text-dark transition-all"
+            <button 
+              onClick={() => setIsFeedbackModalOpen(true)}
+              className="inline-flex items-center gap-3 bg-gold/10 text-gold border border-gold/20 px-10 py-5 rounded-full font-bold hover:bg-gold hover:text-dark transition-all shadow-lg shadow-gold/5"
             >
-              <MessageCircle className="w-5 h-5" />
-              Deixe seu Feedback
-            </a>
+              <Star className="w-5 h-5 fill-current" />
+              ENVIAR MEU FEEDBACK
+            </button>
           </motion.div>
         </div>
       </section>
+
+      {/* FEEDBACK MODAL */}
+      {isFeedbackModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-dark/80 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="glass w-full max-w-lg p-10 rounded-[2.5rem] relative"
+          >
+            <button 
+              onClick={() => setIsFeedbackModalOpen(false)}
+              className="absolute top-6 right-6 text-gray-400 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            <h3 className="text-3xl font-display font-bold mb-2">Sua Opinião</h3>
+            <p className="text-gray-400 mb-8">Conte-nos como foi sua experiência no Salão Simone Barros.</p>
+
+            {submitSuccess ? (
+              <div className="text-center py-10">
+                <div className="w-16 h-16 bg-gold/20 rounded-full flex items-center justify-center text-gold mx-auto mb-6">
+                  <Check className="w-8 h-8" />
+                </div>
+                <h4 className="text-xl font-bold mb-2">Obrigada pelo carinho!</h4>
+                <p className="text-gray-400">Seu feedback foi enviado e será revisado em breve.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleFeedbackSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-gray-500 font-bold mb-2">Seu Nome</label>
+                  <input 
+                    required
+                    type="text"
+                    value={feedbackForm.author}
+                    onChange={(e) => setFeedbackForm({...feedbackForm, author: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-gold outline-none transition-colors"
+                    placeholder="Ex: Maria Silva"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-gray-500 font-bold mb-2">Sua Profissão/Idade (Opcional)</label>
+                  <input 
+                    type="text"
+                    value={feedbackForm.role}
+                    onChange={(e) => setFeedbackForm({...feedbackForm, role: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-gold outline-none transition-colors"
+                    placeholder="Ex: Arquiteta, 35 anos"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-gray-500 font-bold mb-2">Seu Depoimento</label>
+                  <textarea 
+                    required
+                    rows={4}
+                    value={feedbackForm.text}
+                    onChange={(e) => setFeedbackForm({...feedbackForm, text: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-gold outline-none transition-colors resize-none"
+                    placeholder="Escreva aqui sua mensagem..."
+                  />
+                </div>
+                <button 
+                  disabled={isSubmitting}
+                  type="submit"
+                  className="w-full bg-gold text-dark py-5 rounded-2xl font-bold hover:bg-white transition-all disabled:opacity-50"
+                >
+                  {isSubmitting ? "ENVIANDO..." : "ENVIAR FEEDBACK"}
+                </button>
+              </form>
+            )}
+          </motion.div>
+        </div>
+      )}
 
       {/* FOOTER */}
       <footer className="py-12 border-t border-white/5 px-6">

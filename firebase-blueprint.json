@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "testimonial": {
+      "title": "Testimonial",
+      "description": "A client feedback or review.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The feedback text."
+        },
+        "author": {
+          "type": "string",
+          "description": "The name of the client."
+        },
+        "role": {
+          "type": "string",
+          "description": "The client's role or title."
+        },
+        "initials": {
+          "type": "string",
+          "description": "The client's initials."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the feedback was submitted."
+        },
+        "approved": {
+          "type": "boolean",
+          "description": "Whether the feedback is approved for display."
+        }
+      },
+      "required": ["text", "author", "initials", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/testimonials": {
+      "schema": "testimonial",
+      "description": "Collection of client testimonials."
+    }
+  }
+}

@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: testimonials
+    // Fields:
+    //   - text: string (required, size < 1000)
+    //   - author: string (required, size < 100)
+    //   - role: string (optional, size < 100)
+    //   - initials: string (required, size < 5)
+    //   - createdAt: timestamp (required)
+    //   - approved: bool (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "gorduchosantos@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidTestimonial(data) {
+      return data.keys().hasAll(['text', 'author', 'initials', 'createdAt', 'approved']) &&
+             data.text is string && data.text.size() > 0 && data.text.size() < 1000 &&
+             data.author is string && data.author.size() > 0 && data.author.size() < 100 &&
+             data.initials is string && data.initials.size() > 0 && data.initials.size() < 5 &&
+             data.createdAt is timestamp &&
+             data.approved is bool &&
+             (!('role' in data) || (data.role is string && data.role.size() < 100));
+    }
+
+    match /testimonials/{testimonialId} {
+      // Anyone can read approved testimonials
+      allow read: if resource.data.approved == true || isAdmin();
+
+      // Authenticated users can create a testimonial (must be unapproved by default)
+      allow create: if isAuthenticated() && 
+                    isValidTestimonial(request.resource.data) &&
+                    request.resource.data.approved == false;
+
+      // Only admins can update (approve) or delete testimonials
+      allow update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if request.auth.uid == userId || isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}
