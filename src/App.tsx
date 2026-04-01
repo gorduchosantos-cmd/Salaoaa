@@ -38,9 +38,9 @@ const SERVICES = [
     image: "https://lh3.googleusercontent.com/d/1o-hsiQcpRa-pEPqeIQWyPaUxQdBfQJma"
   },
   {
-    title: "Terapia de Alma",
+    title: "A MAIS DE 30 ANOS",
     category: "Saúde Capilar",
-    description: "Protocolos de tratamento profundos que recuperam o brilho e a força dos cabelos.",
+    description: "Com mais de 30 anos de experiência, nossa cabeleireira transforma beleza em confiança todos os dias",
     image: "https://lh3.googleusercontent.com/d/1myoowgVKwPl2EfVSDZxHdJZ01oXjD2ZW"
   }
 ];
