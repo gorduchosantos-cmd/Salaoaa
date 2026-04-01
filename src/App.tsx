@@ -12,7 +12,9 @@ import {
   ChevronDown,
   Menu,
   X,
-  Star
+  Star,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from './lib/utils';
@@ -95,6 +97,7 @@ export default function App() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const heroRef = useRef(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"]
@@ -152,6 +155,14 @@ export default function App() {
 
   const heroScale = useTransform(scrollYProgress, [0, 1], [1.1, 1]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [0.4, 0]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const { scrollLeft, clientWidth } = scrollRef.current;
+      const scrollTo = direction === 'left' ? scrollLeft - (clientWidth / 2) : scrollLeft + (clientWidth / 2);
+      scrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="min-h-screen font-sans">
@@ -472,28 +483,47 @@ export default function App() {
             O que dizem nossas musas
           </motion.h2>
           
-          <div className="flex gap-6 overflow-x-auto no-scrollbar pb-10 snap-x">
-            {allTestimonials.map((t, idx) => (
-              <motion.div 
-                key={t.id || idx}
-                initial={{ x: 50, opacity: 0 }}
-                whileInView={{ x: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="flex-shrink-0 w-[350px] glass p-10 rounded-[2rem] border-white/5 italic snap-center"
-              >
-                <p className="text-lg text-gray-300 mb-8 leading-relaxed">"{t.text}"</p>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center font-bold text-gold">
-                    {t.initials}
+          <div className="relative group">
+            <div 
+              ref={scrollRef}
+              className="flex gap-6 overflow-x-auto no-scrollbar pb-10 snap-x"
+            >
+              {allTestimonials.map((t, idx) => (
+                <motion.div 
+                  key={t.id || idx}
+                  initial={{ x: 50, opacity: 0 }}
+                  whileInView={{ x: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="flex-shrink-0 w-[350px] glass p-10 rounded-[2rem] border-white/5 italic snap-center"
+                >
+                  <p className="text-lg text-gray-300 mb-8 leading-relaxed">"{t.text}"</p>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center font-bold text-gold">
+                      {t.initials}
+                    </div>
+                    <div>
+                      <h4 className="font-bold">{t.author}</h4>
+                      <p className="text-xs text-gray-500 uppercase">{t.role}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold">{t.author}</h4>
-                    <p className="text-xs text-gray-500 uppercase">{t.role}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Navigation Arrows */}
+            <button 
+              onClick={() => scroll('left')}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 bg-dark/50 hover:bg-gold hover:text-dark border border-white/10 p-4 rounded-full transition-all opacity-0 group-hover:opacity-100 hidden md:flex"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button 
+              onClick={() => scroll('right')}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 bg-dark/50 hover:bg-gold hover:text-dark border border-white/10 p-4 rounded-full transition-all opacity-0 group-hover:opacity-100 hidden md:flex"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
           </div>
 
           <motion.div 
