@@ -293,19 +293,11 @@ export default function App() {
             initial={{ x: 30, opacity: 0 }}
             whileInView={{ x: 0, opacity: 1 }}
             viewport={{ once: true }}
-            className="md:col-span-2 glass rounded-[2.5rem] p-10 flex items-center gap-8 group"
+            className="md:col-span-2 glass rounded-[2.5rem] p-10 flex items-center group"
           >
-            <div className="w-1/2">
+            <div className="w-full">
               <h3 className="text-2xl font-display font-bold mb-2">Visagismo</h3>
               <p className="text-gray-400 text-sm">Cortes que harmonizam com o seu formato de rosto e personalidade.</p>
-            </div>
-            <div className="w-1/2 h-32 bg-dark rounded-2xl overflow-hidden">
-              <img 
-                src="https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?q=80&w=1974&auto=format&fit=crop" 
-                className="w-full h-full object-cover" 
-                alt="Visagismo" 
-                referrerPolicy="no-referrer"
-              />
             </div>
           </motion.div>
 
@@ -433,6 +425,23 @@ export default function App() {
               </motion.div>
             ))}
           </div>
+
+          <motion.div 
+            initial={{ y: 30, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            className="mt-16 text-center"
+          >
+            <a 
+              href="https://wa.me/message/INXNY2BHGTC2E1" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 bg-gold/10 text-gold border border-gold/20 px-8 py-4 rounded-full font-bold hover:bg-gold hover:text-dark transition-all"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Deixe seu Feedback
+            </a>
+          </motion.div>
         </div>
       </section>
 
